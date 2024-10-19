@@ -12,14 +12,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c1160c2a3cbb4554d9cf9f5d5ddfa687, type: 3}
   m_Name: BobStats
   m_EditorClassIdentifier: 
-  gravity: -100
+  gravity: -130
+  apexGravity: -50
   horizontalAccel: 200
   maxHorizontalSpeed: 25
-  maxFallSpeed: 40
-  jumpStrength: 60
-  groundFriction: 120
-  fastFallSpeed: 200
+  maxFallSpeed: -40
+  jumpStrength: 30
+  groundFriction: 250
+  fastFallSpeed: -200
   maxApexTime: 0.1
-  apexYVel: 15
-  apexXVel: 20
+  apexYVel: 0
+  apexXVel: 0
   coyoteTime: 0.1
