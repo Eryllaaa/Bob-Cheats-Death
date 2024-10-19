@@ -506,6 +506,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   collider: {fileID: 662513499}
+  stats: {fileID: 11400000, guid: 3a8d9124a2a6d3446911cfbc578510e8, type: 2}
 --- !u!212 &662513497
 SpriteRenderer:
   m_ObjectHideFlags: 0

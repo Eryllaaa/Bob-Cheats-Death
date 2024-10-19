@@ -7,17 +7,7 @@ public class Character : MonoBehaviour
     private CharacterInputsManager inputs;
     private Vector2 velocity = Vector2.zero;
 
-    private float gravity = -100;
-    private float horizontalAccel = 130f;
-    private float maxHorizontalSpeed = 15f;
-    private float maxFallSpeed = -25;
-    private float jumpStrength = 60f;
-    private float groundFriction = 90f;
-    private float fastFallSpeed = -500f;
-    private float maxApexTime = 2f;
-    private float apexYVel = 10f;
-    private float apexXVel = 10f;
-    private float coyoteTime = 5f;
+    [SerializeField] private CharacterStats stats;
 
     private bool releasedJumpEarly = false;
     private bool grounded = false;
@@ -32,8 +22,8 @@ public class Character : MonoBehaviour
     private void FixedUpdate()
     {
         HandleHorizontalMovement();
-        CheckCollision();
         HandleVertical();
+        CheckCollision();
         ApplyVelocity();
     }
 
@@ -45,9 +35,12 @@ public class Character : MonoBehaviour
         bool rightHit    = Physics2D.BoxCast(collider.bounds.center + (Vector3)new Vector2(collider.bounds.size.x * 0.4f, 0), new Vector2(collider.bounds.size.x * 0.1f, collider.bounds.size.y * 0.5f), 0, Vector2.right, 0.05f);
         if (groundHit)
         {
+            if (hasGrounded)
+            {
+                velocity = new Vector2(velocity.x, 0);
+                hasGrounded = false;
+            }
             grounded = true;
-            velocity = new Vector2(velocity.x, 0);
-            hasGrounded = false;
         }
         else
         {
@@ -73,30 +66,45 @@ public class Character : MonoBehaviour
         if (ceillingHit)
         {
             Vector2 dir = Vector2.zero;
-            //dir = Physics2D.BoxCast(collider.bounds.center + (Vector3)new Vector2(0, collider.bounds.size.y * 0.4f), new Vector2(collider.bounds.size.x * 0.5f, collider.bounds.size.y * 0.1f), 0, Vector2.up, 0.05f).point - (Vector2)collider.bounds.center;
-            velocity = new Vector2(velocity.x, Mathf.Min(velocity.y, 0)) + dir * 10;
+            dir = Physics2D.BoxCast(collider.bounds.center + (Vector3)new Vector2(0, collider.bounds.size.y * 0.4f), new Vector2(collider.bounds.size.x * 0.5f, collider.bounds.size.y * 0.1f), 0, Vector2.up, 0.05f).point - (Vector2)collider.bounds.center;
+            Debug.DrawLine(transform.position, dir);
+            Debug.Log(dir);
+            velocity = new Vector2(velocity.x, Mathf.Min(velocity.y, 0));// + dir * 10;
         }
     }
 
     private void ApplyVelocity()
     {
-        velocity.y = Mathf.Max(velocity.y, maxFallSpeed);
+        velocity.x = Mathf.Clamp(velocity.x, -stats.maxHorizontalSpeed, stats.maxHorizontalSpeed);
+        velocity.y = Mathf.Max(velocity.y, stats.maxFallSpeed);
         transform.position += (Vector3)velocity * Time.fixedDeltaTime;
     }
 
     private void HandleHorizontalMovement()
     {
+        if (inputs.Left && inputs.Right)
+        {
+            return;
+        }
         if (inputs.Left)
         {
-            velocity -= new Vector2(horizontalAccel, 0) * Time.fixedDeltaTime;
+            if (velocity.x > 0) //if we were going right
+            {
+                velocity.x = Mathf.MoveTowards(velocity.x, 0, stats.groundFriction * Time.fixedDeltaTime);
+            }
+            velocity -= new Vector2(stats.horizontalAccel, 0) * Time.fixedDeltaTime;
         }
         if (inputs.Right)
         {
-            velocity += new Vector2(horizontalAccel, 0) * Time.fixedDeltaTime;
+            if (velocity.x < 0) //if we were going left
+            {
+                velocity.x = Mathf.MoveTowards(velocity.x, 0, stats.groundFriction * Time.fixedDeltaTime);
+            }
+            velocity += new Vector2(stats.horizontalAccel, 0) * Time.fixedDeltaTime;
         }
         if (!inputs.Left && !inputs.Right)
         {
-            velocity = new Vector2(Mathf.MoveTowards(velocity.x, 0, groundFriction * Time.fixedDeltaTime), velocity.y);
+            velocity = new Vector2(Mathf.MoveTowards(velocity.x, 0, stats.groundFriction * Time.fixedDeltaTime), velocity.y);
         }
     }
 
@@ -104,7 +112,7 @@ public class Character : MonoBehaviour
     private bool hasJumped = false;
     private void HandleVertical()
     {
-        if (inputs.Up && (grounded || (notGroundedTime < coyoteTime && !hasJumped)))
+        if (inputs.Up && (grounded || (notGroundedTime < stats.coyoteTime && !hasJumped)))
         {
             Jump();
         }
@@ -119,7 +127,7 @@ public class Character : MonoBehaviour
         }
         else
         {
-            appliedGravity = gravity;
+            appliedGravity = stats.gravity;
             HandleVariableJump();
             HandleApexModifier();
         }
@@ -139,17 +147,20 @@ public class Character : MonoBehaviour
         {
             inApex = true;
             hasApexed = true;
-            velocity.y = apexYVel;
-            velocity.x += apexXVel;
+            velocity.y = stats.apexYVel;
+            if (velocity.x != 0)
+            {
+                velocity.x += Mathf.Sign(velocity.x) * stats.apexXVel;
+            }
         }
         if (inApex) //stuff to do while in apex.
         {
-            if (apexTime > maxApexTime)
+            if (apexTime > stats.maxApexTime)
             {
                 inApex = false;
             }
             apexTime += Time.fixedDeltaTime;
-            appliedGravity = 0;
+            appliedGravity = stats.apexGravity;
         }
     }
 
@@ -163,7 +174,7 @@ public class Character : MonoBehaviour
             }
             if (releasedJumpEarly)
             {
-                appliedGravity = fastFallSpeed;
+                appliedGravity = stats.fastFallSpeed;
             }
         }
     }
@@ -172,7 +183,7 @@ public class Character : MonoBehaviour
     {
         grounded = false;
         hasJumped = true;
-        velocity = new Vector2(velocity.x, jumpStrength);
+        velocity = new Vector2(velocity.x, stats.jumpStrength);
         releasedJumpEarly = false;
         apexTime = 0;
         inApex = false;
